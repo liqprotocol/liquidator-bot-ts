@@ -26,3 +26,11 @@ the launch command would then change to:
 ```
 node dist/index.js PRIVATE_KEY.json public START_PAGE END_PAGE
 ```
+
+# Set up
+
+You need to set up a private key, give it enough SOL to fire transactions, and deposit X USDC into its
+associated USDC account.
+
+After that, you need to change `maxLiquidationSize` in `src/index.ts` to the maximum amount of liquidation you are able
+to execute at once. I would just set it to slightly smaller than X.
