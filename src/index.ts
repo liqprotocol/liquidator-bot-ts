@@ -1,4 +1,4 @@
-import { Connection, Keypair } from '@solana/web3.js';
+import { Connection, Keypair, Transaction } from '@solana/web3.js';
 import { sleep, Throttler } from './utils';
 import { PriceWatcher, UsersPageWatcher } from './AccountWatcher';
 import { PoolIdToPrice } from './types';
@@ -14,19 +14,22 @@ import {
   TokenID,
   TransactionBuilder,
 } from '@apricot-lend/sdk-ts';
-import { RAYDIUM_BTC_USDC_MARKET, RAYDIUM_ETH_USDC_MARKET, RAYDIUM_SOL_USDC_MARKET, Swapper } from '@apricot-lend/solana-swaps-js';
+import { ORCA_USDT_USDC_MARKET, RAYDIUM_BTC_USDC_MARKET, RAYDIUM_ETH_USDC_MARKET, RAYDIUM_SOL_USDC_MARKET, Swapper } from '@apricot-lend/solana-swaps-js';
 import * as swappers from '@apricot-lend/solana-swaps-js';
+import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 
 export const SUPPORTED_MARKETS: {[key in TokenID]?: Swapper} = {
   [TokenID.BTC]: RAYDIUM_BTC_USDC_MARKET,
   [TokenID.ETH]: RAYDIUM_ETH_USDC_MARKET,
   [TokenID.SOL]: RAYDIUM_SOL_USDC_MARKET,
+  [TokenID.USDT]: ORCA_USDT_USDC_MARKET,
 };
 
 export const TOK_ID_TRANSLATE = {
   [TokenID.BTC]: swappers.TokenID.BTC,
   [TokenID.ETH]: swappers.TokenID.ETH,
   [TokenID.SOL]: swappers.TokenID.SOL,
+  [TokenID.USDT]: swappers.TokenID.USDT,
 }
 
 const date = new Date();
@@ -113,11 +116,49 @@ export class LiquidatorBot {
     }
   }
 
+  async checkOrCreateAssociatedTokAcc(tokenId: TokenID) {
+    const mint = MINTS[tokenId];
+    const acc = await Token.getAssociatedTokenAddress(
+      ASSOCIATED_TOKEN_PROGRAM_ID, 
+      TOKEN_PROGRAM_ID, 
+      mint, 
+      this.keypair.publicKey
+    );
+    const accInfo = await this.connection.getAccountInfo(acc, 'confirmed');
+    if (accInfo) {
+      // good
+      console.log(`Token account for ${tokenId} exists`);
+    }
+    else {
+      console.log(`Token account for ${tokenId} being created...`);
+      // create it and init
+      const createIx = Token.createAssociatedTokenAccountInstruction(
+        ASSOCIATED_TOKEN_PROGRAM_ID,
+        TOKEN_PROGRAM_ID,
+        mint,
+        acc,
+        this.keypair.publicKey,
+        this.keypair.publicKey
+      );
+      const tx = new Transaction().add(createIx);
+      const sig = await this.connection.sendTransaction(tx, [this.keypair]);
+      this.connection.confirmTransaction(sig);
+    }
+  }
+
+  async prepare() {
+    for(const tokId of [TokenID.BTC, TokenID.ETH, TokenID.SOL, TokenID.USDC, TokenID.USDT, TokenID.UST]) {
+      await this.checkOrCreateAssociatedTokAcc(tokId);
+    }
+  }
+
   async start() {
     // 1. watch prices
     // 2. watch all user pages
     // 3. wait for prices to become available
     // 4. loop
+
+    await this.prepare();
 
     this.throttler.run();
     const watchedTokenIds = Object.keys(config.tokenIdToPoolId);

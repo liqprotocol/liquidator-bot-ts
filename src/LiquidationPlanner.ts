@@ -136,7 +136,7 @@ export class LiquidationPlanner {
     const collateralMint = this.config.getMintByPoolId(collateralPoolId)!;
     const collateralTokId = this.config.getTokenIdByPoolId(collateralPoolId);
     const borrowedMint = this.config.getMintByPoolId(borrowedPoolId)!;
-    const borrowedTokId = this.config.getTokenIdByPoolId(collateralPoolId);
+    const borrowedTokId = this.config.getTokenIdByPoolId(borrowedPoolId);
 
     const usdcPoolId = this.config.tokenIdToPoolId[TokenID.USDC]!;
 
@@ -193,14 +193,19 @@ export class LiquidationPlanner {
         const borrowedTokIdSwappers = tokenIdTranslation[borrowedTokId];
         invariant(borrowedTokIdSwappers !== undefined);
 
+        const payUsdcAmt = usdcAmount * this.config.getDecimalMultByPoolId(usdcPoolId) * (1 + this.bot.maxTradeSlippage);
+        const minAskAmt = borrowedAmt * this.config.getDecimalMultByPoolId(borrowedPoolId);
+
+        console.log(`Paying ${payUsdcAmt} USDC for ${minAskAmt} ${borrowedTokIdSwappers}`);
+
         instructions.push(
           (await swapper.createSwapInstructions(
             swappers.TokenID.USDC,
-            usdcAmount * this.config.getDecimalMultByPoolId(usdcPoolId) * (1 + this.bot.maxTradeSlippage),
+            payUsdcAmt,
             usdcSplKey,
 
             borrowedTokIdSwappers,
-            borrowedAmt * this.config.getDecimalMultByPoolId(borrowedPoolId),
+            minAskAmt,
             borrowedSplKey,
 
             liquidatorKeypair.publicKey,
@@ -209,6 +214,10 @@ export class LiquidationPlanner {
       }
 
       // 2 liquidateIx
+      console.log(liquidatorKeypair.publicKey.toString());
+      console.log(collateralMint.toString());
+      console.log(collateralSplKey.toString());
+      console.log(borrowedSplKey.toString());
       const liquidateTx = await builder.externalLiquidate(
         liquidatorKeypair,
         this.walletKey,
@@ -236,14 +245,18 @@ export class LiquidationPlanner {
         const collateralTokIdSwappers = tokenIdTranslation[borrowedTokId];
         invariant(collateralTokIdSwappers !== undefined);
 
+        const askUsdcAmount =usdcAmount * this.config.getDecimalMultByPoolId(usdcPoolId) * (1 - this.bot.maxTradeSlippage); 
+
+        console.log(`Selling collateral back to at least ${askUsdcAmount} USDC`);
+
         instructions.push(
           (await swapper.createSwapInstructions(
             collateralTokIdSwappers,
-            collateralAmt * this.config.getDecimalMultByPoolId(borrowedPoolId),
+            collateralAmt * this.config.getDecimalMultByPoolId(collateralPoolId),
             collateralSplKey,
 
             swappers.TokenID.USDC,
-            usdcAmount * this.config.getDecimalMultByPoolId(usdcPoolId) * (1 - this.bot.maxTradeSlippage),
+            askUsdcAmount,
             usdcSplKey,
 
             liquidatorKeypair.publicKey,
@@ -272,8 +285,9 @@ export class LiquidationPlanner {
       // 4. clears residual
       if(this.bot.clearResidual && borrowedTokId != TokenID.USDC) {
         const borrowedSplInfo = await connection.getParsedAccountInfo(borrowedSplKey);
-        const leftOver = (borrowedSplInfo.value?.data as any).parsed.info.tokenAmount.uiAmount;
+        const leftOver = parseInt((borrowedSplInfo.value?.data as any).parsed.info.tokenAmount.amount);
         if(leftOver > 0) {
+          console.log(`Selling residual ${leftOver} of ${borrowedTokId}`);
           const swapper = supportedMarkets[borrowedTokId];
           invariant(swapper !== undefined);
 
@@ -283,8 +297,35 @@ export class LiquidationPlanner {
           const clearResidualIx = 
             (await swapper.createSwapInstructions(
               borrowedTokIdSwappers,
-              leftOver * this.config.getDecimalMultByPoolId(borrowedPoolId),
+              leftOver,
               borrowedSplKey,
+
+              swappers.TokenID.USDC,
+              0,  // Get as much USDC back as we can. Tolerate arbitrary slippage.
+              usdcSplKey,
+
+              liquidatorKeypair.publicKey,
+            ))[0];
+          const clearTx = new Transaction().add(clearResidualIx);
+          await connection.sendTransaction(clearTx, [liquidatorKeypair]);
+        }
+      }
+
+      if(this.bot.clearResidual && collateralTokId != TokenID.USDC) {
+        const collateralSplInfo = await connection.getParsedAccountInfo(collateralSplKey);
+        const leftOver = parseInt((collateralSplInfo.value?.data as any).parsed.info.tokenAmount.amount);
+        if(leftOver > 0) {
+          const swapper = supportedMarkets[collateralTokId];
+          invariant(swapper !== undefined);
+
+          const collateralTokIdSwappers = tokenIdTranslation[collateralTokId];
+          invariant(collateralTokIdSwappers !== undefined);
+
+          const clearResidualIx = 
+            (await swapper.createSwapInstructions(
+              collateralTokIdSwappers,
+              leftOver,
+              collateralSplKey,
 
               swappers.TokenID.USDC,
               0,  // Get as much USDC back as we can. Tolerate arbitrary slippage.
