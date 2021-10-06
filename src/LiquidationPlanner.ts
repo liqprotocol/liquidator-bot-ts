@@ -11,6 +11,7 @@ import { LiquidatorBot } from '.';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import * as swappers from '@apricot-lend/solana-swaps-js';
 import invariant from 'tiny-invariant';
+import { sleep } from './utils';
 
 type PoolIdToNum = Record<number, number>;
 
@@ -234,34 +235,41 @@ export class LiquidationPlanner {
       // 3. sell collateral to USDC
       if (collateralTokId != TokenID.USDC) {
         if(!(collateralTokId in supportedMarkets)) {
-          throw new Error(`Unsupported collateral type of ${borrowedTokId}!`);
+          throw new Error(`Unsupported collateral type of ${collateralTokId}!`);
         }
         const usdcAmount = collateralAmt * this.poolIdToPrice[collateralPoolId] / this.poolIdToPrice[usdcPoolId];
-        invariant(usdcAmount >= 0);
+        invariant(usdcAmount >= 0, `Bad USDC amount: ${usdcAmount}`);
 
         const swapper = supportedMarkets[collateralTokId];
-        invariant(swapper !== undefined);
+        invariant(swapper !== undefined, `${collateralTokId} not in supportedMarket!`);
 
-        const collateralTokIdSwappers = tokenIdTranslation[borrowedTokId];
-        invariant(collateralTokIdSwappers !== undefined);
+        const collateralTokIdSwappers = tokenIdTranslation[collateralTokId];
+        invariant(collateralTokIdSwappers !== undefined, `${collateralTokId} not in tokenIdTranslation`);
 
-        const askUsdcAmount =usdcAmount * this.config.getDecimalMultByPoolId(usdcPoolId) * (1 - this.bot.maxTradeSlippage); 
+        // we care about slippage only if the value of collateral is greater than 10
+        // otherwise, step 4.2 should handle it
+        if(usdcAmount > 10) {
+          const fairValue = usdcAmount * this.config.getDecimalMultByPoolId(usdcPoolId);
+          const askUsdcAmount = fairValue * (1 - this.bot.maxTradeSlippage); 
 
-        console.log(`Selling collateral back to at least ${askUsdcAmount} USDC`);
+          console.log(`Price of ${collateralTokId}: ${this.poolIdToPrice[collateralPoolId] }`);
+          console.log(`Price of USDC: ${this.poolIdToPrice[usdcPoolId] }`);
+          console.log(`Selling collateral ${collateralAmt} of ${collateralTokId}, valued at ${usdcAmount} USDC, back to at least ${askUsdcAmount} (native) USDC`);
 
-        instructions.push(
-          (await swapper.createSwapInstructions(
-            collateralTokIdSwappers,
-            collateralAmt * this.config.getDecimalMultByPoolId(collateralPoolId),
-            collateralSplKey,
+          instructions.push(
+            (await swapper.createSwapInstructions(
+              collateralTokIdSwappers,
+              collateralAmt * this.config.getDecimalMultByPoolId(collateralPoolId),
+              collateralSplKey,
 
-            swappers.TokenID.USDC,
-            askUsdcAmount,
-            usdcSplKey,
+              swappers.TokenID.USDC,
+              askUsdcAmount,
+              usdcSplKey,
 
-            liquidatorKeypair.publicKey,
-          ))[0]
-        );
+              liquidatorKeypair.publicKey,
+            ))[0]
+          );
+        }
       }
 
       if(instructions.length <= 2) {
@@ -277,12 +285,15 @@ export class LiquidationPlanner {
         const sig = await connection.sendTransaction(tx1, [liquidatorKeypair]);
         await connection.confirmTransaction(sig);
 
+        // sleep a little while just to be sure
+        await sleep(15*1000);
+
         const tx2 = new Transaction().add(instructions[2]);
         const sig2 = await connection.sendTransaction(tx2, [liquidatorKeypair]);
         await connection.confirmTransaction(sig2);
       }
 
-      // 4. clears residual
+      // 4.1 clears residual in borrowed token
       if(this.bot.clearResidual && borrowedTokId != TokenID.USDC) {
         const borrowedSplInfo = await connection.getParsedAccountInfo(borrowedSplKey);
         const leftOver = parseInt((borrowedSplInfo.value?.data as any).parsed.info.tokenAmount.amount);
@@ -311,10 +322,12 @@ export class LiquidationPlanner {
         }
       }
 
+      // 4.2 clears residual in collateral token
       if(this.bot.clearResidual && collateralTokId != TokenID.USDC) {
         const collateralSplInfo = await connection.getParsedAccountInfo(collateralSplKey);
         const leftOver = parseInt((collateralSplInfo.value?.data as any).parsed.info.tokenAmount.amount);
         if(leftOver > 0) {
+          console.log(`Selling residual ${leftOver} of ${collateralTokId}`);
           const swapper = supportedMarkets[collateralTokId];
           invariant(swapper !== undefined);
 

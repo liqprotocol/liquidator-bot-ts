@@ -30,6 +30,7 @@ export const TOK_ID_TRANSLATE = {
   [TokenID.ETH]: swappers.TokenID.ETH,
   [TokenID.SOL]: swappers.TokenID.SOL,
   [TokenID.USDT]: swappers.TokenID.USDT,
+  [TokenID.USDC]: swappers.TokenID.USDC,
 }
 
 const date = new Date();
