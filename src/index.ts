@@ -154,6 +154,12 @@ export class LiquidatorBot {
   }
 
   async start() {
+    // shutdown in 20 minutes
+    const shutdownTimer = async () => {
+      await sleep(20 * 60 * 1000);
+      process.exit();
+    }
+    shutdownTimer();
     // 1. watch prices
     // 2. watch all user pages
     // 3. wait for prices to become available
