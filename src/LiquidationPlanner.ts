@@ -201,7 +201,7 @@ export class LiquidationPlanner {
         const payUsdcAmt = usdcAmount * this.config.getDecimalMultByPoolId(usdcPoolId) * (1 + this.bot.maxTradeSlippage);
         const minAskAmt = borrowedAmt * this.config.getDecimalMultByPoolId(borrowedPoolId);
 
-        console.log(`Paying ${payUsdcAmt} USDC for ${minAskAmt} ${borrowedTokIdSwappers}`);
+        this.bot.logAction(`Paying ${payUsdcAmt} USDC for ${minAskAmt} ${borrowedTokIdSwappers}`);
 
         instructions.push(
           (await swapper.createSwapInstructions(
@@ -219,10 +219,10 @@ export class LiquidationPlanner {
       }
 
       // 2 liquidateIx
-      console.log(liquidatorKeypair.publicKey.toString());
-      console.log(collateralMint.toString());
-      console.log(collateralSplKey.toString());
-      console.log(borrowedSplKey.toString());
+      this.bot.logAction(liquidatorKeypair.publicKey.toString());
+      this.bot.logAction(collateralMint.toString());
+      this.bot.logAction(collateralSplKey.toString());
+      this.bot.logAction(borrowedSplKey.toString());
       const liquidateTx = await builder.externalLiquidate(
         liquidatorKeypair,
         this.walletKey,
@@ -256,9 +256,9 @@ export class LiquidationPlanner {
           const fairValue = usdcAmount * this.config.getDecimalMultByPoolId(usdcPoolId);
           const askUsdcAmount = fairValue * (1 - this.bot.maxTradeSlippage); 
 
-          console.log(`Price of ${collateralTokId}: ${this.poolIdToPrice[collateralPoolId] }`);
-          console.log(`Price of USDC: ${this.poolIdToPrice[usdcPoolId] }`);
-          console.log(`Selling collateral ${collateralAmt} of ${collateralTokId}, valued at ${usdcAmount} USDC, back to at least ${askUsdcAmount} (native) USDC`);
+          this.bot.logAction(`Price of ${collateralTokId}: ${this.poolIdToPrice[collateralPoolId] }`);
+          this.bot.logAction(`Price of USDC: ${this.poolIdToPrice[usdcPoolId] }`);
+          this.bot.logAction(`Selling collateral ${collateralAmt} of ${collateralTokId}, valued at ${usdcAmount} USDC, back to at least ${askUsdcAmount} (native) USDC`);
 
           instructions.push(
             (await swapper.createSwapInstructions(
@@ -296,7 +296,7 @@ export class LiquidationPlanner {
         const borrowedSplInfo = await connection.getParsedAccountInfo(borrowedSplKey);
         const leftOver = parseInt((borrowedSplInfo.value?.data as any).parsed.info.tokenAmount.amount);
         if(leftOver > 0) {
-          console.log(`Selling residual ${leftOver} of ${borrowedTokId}`);
+          this.bot.logAction(`Selling residual ${leftOver} of ${borrowedTokId}`);
           const swapper = supportedMarkets[borrowedTokId];
           invariant(swapper !== undefined);
 
@@ -325,7 +325,7 @@ export class LiquidationPlanner {
         const collateralSplInfo = await connection.getParsedAccountInfo(collateralSplKey);
         const leftOver = parseInt((collateralSplInfo.value?.data as any).parsed.info.tokenAmount.amount);
         if(leftOver > 0) {
-          console.log(`Selling residual ${leftOver} of ${collateralTokId}`);
+          this.bot.logAction(`Selling residual ${leftOver} of ${collateralTokId}`);
           const swapper = supportedMarkets[collateralTokId];
           invariant(swapper !== undefined);
 
@@ -350,7 +350,6 @@ export class LiquidationPlanner {
       }
     }
     catch(e) {
-      console.log(e);
       this.bot.logAction((e as unknown as Error).message);
       this.bot.logAction((e as unknown as Error).stack!);
     }

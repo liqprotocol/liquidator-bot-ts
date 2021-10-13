@@ -39,15 +39,6 @@ export const TOK_ID_TRANSLATE = {
   [TokenID.USDC]: swappers.TokenID.USDC,
 }
 
-const date = new Date();
-const dateStr = date.toISOString();
-const dateStrSub = dateStr
-  .substr(0, dateStr.indexOf('.'))
-  .split(':')
-  .join('-');
-const updateTimedLogger = fs.createWriteStream(`./liquidator.updates.timed.${dateStrSub}`, {});
-const actionTimedLogger = fs.createWriteStream(`./liquidator.actions.timed.${dateStrSub}`, {});
-
 const [, , alphaStr, keyLocation, pageStart, pageEnd] = process.argv;
 
 if (alphaStr !== 'alpha' && alphaStr !== 'public') {
@@ -56,6 +47,15 @@ if (alphaStr !== 'alpha' && alphaStr !== 'public') {
 
 invariant(parseInt(pageStart) >= 0);
 invariant(parseInt(pageEnd) > parseInt(pageStart));
+
+const date = new Date();
+const dateStr = date.toISOString();
+const dateStrSub = dateStr
+  .substr(0, dateStr.indexOf('.'))
+  .split(':')
+  .join('-');
+const updateTimedLogger = fs.createWriteStream(`./liquidator.updates.${pageStart}_${pageEnd}${dateStrSub}.log`, {});
+const actionTimedLogger = fs.createWriteStream(`./liquidator.actions.${pageStart}_${pageEnd}${dateStrSub}.log`, {});
 
 const config = alphaStr === 'alpha' ? ALPHA_CONFIG : PUBLIC_CONFIG;
 assert(config !== null);
@@ -90,13 +90,14 @@ export class LiquidatorBot {
     this.clearResidual = true;
   }
   async step() {
-    console.log(`================== ${new Date().toISOString()} ==================`);
     const poolIdToPrice = this.getPoolIdToPrice();
+    let numNotLoaded = 0;
     for (const pageWatcher of this.pageWatchers) {
       const userInfoWatchers = Object.values(pageWatcher.walletStrToUserInfoWatcher);
       for (let uiw of userInfoWatchers) {
         // uiw could be undefined
         if (!uiw?.accountData) {
+          numNotLoaded += 1;
           continue;
         }
         const planner = new LiquidationPlanner(
@@ -121,6 +122,9 @@ export class LiquidatorBot {
         }
       }
     }
+    if (numNotLoaded) {
+      this.logUpdate(`Num of UserInfo not loaded: ${numNotLoaded}`);
+    }
   }
 
   async checkOrCreateAssociatedTokAcc(tokenId: TokenID) {
@@ -134,10 +138,10 @@ export class LiquidatorBot {
     const accInfo = await this.connection.getAccountInfo(acc, 'confirmed');
     if (accInfo) {
       // good
-      console.log(`Token account for ${tokenId} exists`);
+      this.logUpdate(`Token account for ${tokenId} exists`);
     }
     else {
-      console.log(`Token account for ${tokenId} being created...`);
+      this.logUpdate(`Token account for ${tokenId} being created...`);
       // create it and init
       const createIx = Token.createAssociatedTokenAccountInstruction(
         ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -160,9 +164,9 @@ export class LiquidatorBot {
   }
 
   async start() {
-    // shutdown in 20 minutes
+    // shutdown in 30 minutes
     const shutdownTimer = async () => {
-      await sleep(20 * 60 * 1000);
+      await sleep(30 * 60 * 1000);
       process.exit();
     }
     shutdownTimer();
@@ -193,7 +197,7 @@ export class LiquidatorBot {
       const unmetLength = this.priceWatchers.filter(
         priceWatcher => priceWatcher.accountData === null,
       ).length;
-      console.log(unmetLength);
+      this.logUpdate(`Waiting for ${unmetLength} prices to be loaded`);
       await sleep(1000);
     }
 
@@ -201,7 +205,6 @@ export class LiquidatorBot {
 
     // 4
     while (true) {
-      this.logUpdate('Stepping');
       await this.step();
       await sleep(10 * 1000);
     }
@@ -223,14 +226,13 @@ export class LiquidatorBot {
     this.priceWatchers.forEach(pWatcher => {
       const poolId = pWatcher.poolId;
       const assetPrice = pWatcher.accountData!;
-      console.log(assetPrice);
       result[poolId] = assetPrice.price_in_usd.toNumber();
     });
     return result;
   }
 }
 
-const connection = new Connection('https://lokidfxnwlabdq.main.genesysgo.net:8899/', 'confirmed');
+const connection = new Connection('https://apricot.genesysgo.net', 'confirmed');
 const throttler = new Throttler(5);
 const bot = new LiquidatorBot(
   addresses,

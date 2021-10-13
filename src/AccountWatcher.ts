@@ -15,8 +15,6 @@ export abstract class AccountWatcher {
     invariant(watchedKey, `${AccountWatcher.name}: invalid watched key`);
     this.watchedKey = watchedKey;
 
-    console.log(`watching ${watchedKey.toString()}`);
-
     this.bot.throttler.addNext(() => {
       this.bot.connection.getAccountInfo(this.watchedKey!).then(value => {
         console.log('updated at ' + this.watchedKey?.toString());
@@ -111,8 +109,6 @@ export class UserInfoWatcher extends AccountWatcher {
 
   onUpdate(accountInfo: AccountInfo<Buffer>) {
     this.accountData = AccountParser.parseUserInfo(new Uint8Array(accountInfo.data));
-    console.log(this.userWalletKey.toString());
-    console.log(this.accountData);
   }
 }
 
