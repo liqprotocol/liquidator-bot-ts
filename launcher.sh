@@ -22,5 +22,6 @@ do
             node ./dist/index.js public $KEY_LOC $i $(($i + $PAGES_PER_BOT)) $SIG_STR >> $SIG_STR.log &
         fi
     done
+    date
     sleep 10
 done

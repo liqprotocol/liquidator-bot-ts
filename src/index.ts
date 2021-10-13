@@ -54,8 +54,8 @@ const dateStrSub = dateStr
   .substr(0, dateStr.indexOf('.'))
   .split(':')
   .join('-');
-const updateTimedLogger = fs.createWriteStream(`./liquidator.updates.${pageStart}_${pageEnd}${dateStrSub}.log`, {});
-const actionTimedLogger = fs.createWriteStream(`./liquidator.actions.${pageStart}_${pageEnd}${dateStrSub}.log`, {});
+const updateTimedLogger = fs.createWriteStream(`./liquidator.updates.${pageStart}_${pageEnd}.${dateStrSub}.log`, {});
+const actionTimedLogger = fs.createWriteStream(`./liquidator.actions.${pageStart}_${pageEnd}.${dateStrSub}.log`, {});
 
 const config = alphaStr === 'alpha' ? ALPHA_CONFIG : PUBLIC_CONFIG;
 assert(config !== null);
