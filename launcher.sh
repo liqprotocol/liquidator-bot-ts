@@ -1,7 +1,7 @@
 START_PAGE=${START_PAGE:-0}
 END_PAGE=${END_PAGE:-100}
 PAGES_PER_BOT=${PAGES_PER_BOT:-10}
-KEY_LOC=${KEY_LOC:-assist-key.json}
+KEY_LOC=${KEY_LOC:-liquidator-key.json}
 
 echo "start page: $START_PAGE"
 echo "end page: $END_PAGE"
