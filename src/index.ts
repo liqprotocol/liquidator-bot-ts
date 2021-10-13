@@ -14,7 +14,7 @@ import {
   TokenID,
   TransactionBuilder,
 } from '@apricot-lend/sdk-ts';
-import { ORCA_USDT_USDC_MARKET, RAYDIUM_BTC_USDC_MARKET, RAYDIUM_ETH_USDC_MARKET, RAYDIUM_SOL_USDC_MARKET, Swapper } from '@apricot-lend/solana-swaps-js';
+import { ORCA_ORCA_USDC_MARKET, ORCA_USDT_USDC_MARKET, RAYDIUM_BTC_USDC_MARKET, RAYDIUM_ETH_USDC_MARKET, RAYDIUM_mSOL_USDC_MARKET, RAYDIUM_RAY_USDC_MARKET, RAYDIUM_SOL_USDC_MARKET, Swapper } from '@apricot-lend/solana-swaps-js';
 import * as swappers from '@apricot-lend/solana-swaps-js';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 
@@ -22,6 +22,9 @@ export const SUPPORTED_MARKETS: {[key in TokenID]?: Swapper} = {
   [TokenID.BTC]: RAYDIUM_BTC_USDC_MARKET,
   [TokenID.ETH]: RAYDIUM_ETH_USDC_MARKET,
   [TokenID.SOL]: RAYDIUM_SOL_USDC_MARKET,
+  [TokenID.mSOL]: RAYDIUM_mSOL_USDC_MARKET,
+  [TokenID.ORCA]: ORCA_ORCA_USDC_MARKET,
+  [TokenID.RAY]: RAYDIUM_RAY_USDC_MARKET,
   [TokenID.USDT]: ORCA_USDT_USDC_MARKET,
 };
 
@@ -29,6 +32,9 @@ export const TOK_ID_TRANSLATE = {
   [TokenID.BTC]: swappers.TokenID.BTC,
   [TokenID.ETH]: swappers.TokenID.ETH,
   [TokenID.SOL]: swappers.TokenID.SOL,
+  [TokenID.mSOL]: swappers.TokenID.mSOL,
+  [TokenID.RAY]: swappers.TokenID.RAY,
+  [TokenID.ORCA]: swappers.TokenID.ORCA,
   [TokenID.USDT]: swappers.TokenID.USDT,
   [TokenID.USDC]: swappers.TokenID.USDC,
 }
@@ -42,7 +48,7 @@ const dateStrSub = dateStr
 const updateTimedLogger = fs.createWriteStream(`./liquidator.updates.timed.${dateStrSub}`, {});
 const actionTimedLogger = fs.createWriteStream(`./liquidator.actions.timed.${dateStrSub}`, {});
 
-const [, , keyLocation, alphaStr, pageStart, pageEnd] = process.argv;
+const [, , alphaStr, keyLocation, pageStart, pageEnd] = process.argv;
 
 if (alphaStr !== 'alpha' && alphaStr !== 'public') {
   throw new Error('alphaStr should be either alpha or public');
@@ -148,7 +154,7 @@ export class LiquidatorBot {
   }
 
   async prepare() {
-    for(const tokId of [TokenID.BTC, TokenID.ETH, TokenID.SOL, TokenID.USDC, TokenID.USDT, TokenID.UST]) {
+    for(const tokId of [TokenID.BTC, TokenID.ETH, TokenID.SOL, TokenID.mSOL, TokenID.RAY, TokenID.ORCA, TokenID.USDC, TokenID.USDT, TokenID.UST]) {
       await this.checkOrCreateAssociatedTokAcc(tokId);
     }
   }

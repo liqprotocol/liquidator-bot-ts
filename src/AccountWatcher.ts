@@ -129,8 +129,6 @@ export class PriceWatcher extends AccountWatcher {
   }
 
   onUpdate(accountInfo: AccountInfo<Buffer>) {
-    console.log('Got price:');
     this.accountData = AccountParser.parseAssetPrice(new Uint8Array(accountInfo.data));
-    console.log(this.accountData);
   }
 }

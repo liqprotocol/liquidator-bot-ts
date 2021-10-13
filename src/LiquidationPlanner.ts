@@ -11,9 +11,13 @@ import { LiquidatorBot } from '.';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import * as swappers from '@apricot-lend/solana-swaps-js';
 import invariant from 'tiny-invariant';
-import { sleep } from './utils';
 
 type PoolIdToNum = Record<number, number>;
+
+const sendAndConfirm = async (connection:Connection, tx: Transaction, signers: Keypair[]) => {
+  const sig = await connection.sendTransaction(tx, signers, {preflightCommitment: 'confirmed'});
+  return await connection.confirmTransaction(sig, 'confirmed');
+}
 
 export class LiquidationPlanner {
   private poolIdToBorrowVal: PoolIdToNum;
@@ -202,11 +206,11 @@ export class LiquidationPlanner {
         instructions.push(
           (await swapper.createSwapInstructions(
             swappers.TokenID.USDC,
-            payUsdcAmt,
+            Math.ceil(payUsdcAmt),
             usdcSplKey,
 
             borrowedTokIdSwappers,
-            minAskAmt,
+            Math.floor(minAskAmt),
             borrowedSplKey,
 
             liquidatorKeypair.publicKey,
@@ -226,8 +230,8 @@ export class LiquidationPlanner {
         borrowedSplKey,
         collateralMint.toString(),
         borrowedMint.toString(),
-        collateralAmt * this.config.getDecimalMultByPoolId(collateralPoolId),    // receive amount
-        borrowedAmt * this.config.getDecimalMultByPoolId(borrowedPoolId),        // pay amount
+        Math.floor(collateralAmt * this.config.getDecimalMultByPoolId(collateralPoolId)),    // receive amount
+        Math.ceil(borrowedAmt * this.config.getDecimalMultByPoolId(borrowedPoolId)),        // pay amount
       );
       const liquidateIx = liquidateTx.instructions[0];
       instructions.push(liquidateIx);
@@ -275,22 +279,16 @@ export class LiquidationPlanner {
       if(instructions.length <= 2) {
         const tx = new Transaction();
         instructions.forEach(ix=>{tx.add(ix)});
-        const sig = await connection.sendTransaction(tx, [liquidatorKeypair]);
-        await connection.confirmTransaction(sig);
+        await sendAndConfirm(connection, tx, [liquidatorKeypair]);
       }
       else {
         // separate into 2 transactions, with first 2 grouped together
         const tx1 = new Transaction();
         instructions.slice(0, 2).forEach(ix=>{tx1.add(ix)});
-        const sig = await connection.sendTransaction(tx1, [liquidatorKeypair]);
-        await connection.confirmTransaction(sig);
-
-        // sleep a little while just to be sure
-        await sleep(15*1000);
+        await sendAndConfirm(connection, tx1, [liquidatorKeypair]);
 
         const tx2 = new Transaction().add(instructions[2]);
-        const sig2 = await connection.sendTransaction(tx2, [liquidatorKeypair]);
-        await connection.confirmTransaction(sig2);
+        await sendAndConfirm(connection, tx2, [liquidatorKeypair]);
       }
 
       // 4.1 clears residual in borrowed token
@@ -318,7 +316,7 @@ export class LiquidationPlanner {
               liquidatorKeypair.publicKey,
             ))[0];
           const clearTx = new Transaction().add(clearResidualIx);
-          await connection.sendTransaction(clearTx, [liquidatorKeypair]);
+          await sendAndConfirm(connection, clearTx, [liquidatorKeypair]);
         }
       }
 
@@ -347,7 +345,7 @@ export class LiquidationPlanner {
               liquidatorKeypair.publicKey,
             ))[0];
           const clearTx = new Transaction().add(clearResidualIx);
-          await connection.sendTransaction(clearTx, [liquidatorKeypair]);
+          await sendAndConfirm(connection, clearTx, [liquidatorKeypair]);
         }
       }
     }
