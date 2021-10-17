@@ -9,7 +9,7 @@ How to launch:
 yarn install
 yarn build
 # this launches it in indirect subscription mode
-node dist/index.js YOUR_LIQUIDATOR_PRIVATE_KEY.json public 0 0
+node dist/index.js public YOUR_LIQUIDATOR_PRIVATE_KEY.json 0 0
 ```
 
 The liquidator bot has 2 modes of operation:
@@ -38,7 +38,7 @@ run. But it could be slightly slower than the direct subscription mode (since it
 
 Launch command:
 ```
-node dist/index.js liquidator_private_key.json public 0 0
+node dist/index.js public liquidator_private_key.json 0 0
 ```
 
 
