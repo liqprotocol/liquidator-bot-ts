@@ -17,6 +17,10 @@ import {
 import { ORCA_ORCA_USDC_MARKET, ORCA_USDT_USDC_MARKET, RAYDIUM_BTC_USDC_MARKET, RAYDIUM_ETH_USDC_MARKET, RAYDIUM_mSOL_USDC_MARKET, RAYDIUM_RAY_USDC_MARKET, RAYDIUM_SOL_USDC_MARKET, Swapper } from '@apricot-lend/solana-swaps-js';
 import * as swappers from '@apricot-lend/solana-swaps-js';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { initializeApp } from '@firebase/app';
+import { getFirestore } from '@firebase/firestore';
+
+const CONFIG_FILE_NAME = 'liquidator_config.json';
 
 export const SUPPORTED_MARKETS: {[key in TokenID]?: Swapper} = {
   [TokenID.BTC]: RAYDIUM_BTC_USDC_MARKET,
@@ -45,6 +49,8 @@ if (alphaStr !== 'alpha' && alphaStr !== 'public') {
   throw new Error('alphaStr should be either alpha or public');
 }
 
+const firebaseMode = pageStart === '0' && pageEnd === '0';
+
 invariant(parseInt(pageStart) >= 0);
 invariant(parseInt(pageEnd) > parseInt(pageStart));
 
@@ -63,6 +69,16 @@ const addresses = new Addresses(config);
 const keyStr = fs.readFileSync(keyLocation, 'utf8');
 const privateKey = JSON.parse(keyStr);
 const assistKeypair = Keypair.fromSecretKey(new Uint8Array(privateKey));
+
+const configContent = fs.readFileSync(CONFIG_FILE_NAME, {encoding: 'utf-8'});
+const liquidatorConfig = JSON.parse(configContent);
+
+function shuffle<T>(arr: T[]) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
 
 export class LiquidatorBot {
   priceWatchers: PriceWatcher[];
@@ -85,15 +101,16 @@ export class LiquidatorBot {
     this.pageWatchers = [];
     this.builder = new TransactionBuilder(addresses);
 
-    this.maxLiquidationSize = 1000;
-    this.maxTradeSlippage = 0.02; // 2%. Probably should never set this to greater than 3%
-    this.clearResidual = true;
+    this.maxLiquidationSize = liquidatorConfig.maxLiquidationSize;
+    this.maxTradeSlippage = liquidatorConfig.maxTradeSlippage; // 2%. Probably should never set this to greater than 3%
+    this.clearResidual = liquidatorConfig.clearResidual;
   }
   async step() {
     const poolIdToPrice = this.getPoolIdToPrice();
     let numNotLoaded = 0;
     for (const pageWatcher of this.pageWatchers) {
       const userInfoWatchers = Object.values(pageWatcher.walletStrToUserInfoWatcher);
+      shuffle(userInfoWatchers);
       for (let uiw of userInfoWatchers) {
         // uiw could be undefined
         if (!uiw?.accountData) {
@@ -188,8 +205,14 @@ export class LiquidatorBot {
     });
 
     // 2
-    for (let pageId = this.startPage; pageId < this.endPage; pageId++) {
-      this.pageWatchers.push(new UsersPageWatcher(this, pageId));
+    if (firebaseMode) {
+      const app = initializeApp(config.firebaseConfig);
+      const db = getFirestore(app);
+      this.pageWatchers.push(new UsersPageWatcher(this, 0, db));
+    } else {
+      for (let pageId = this.startPage; pageId < this.endPage; pageId++) {
+        this.pageWatchers.push(new UsersPageWatcher(this, pageId, null));
+      }
     }
 
     // 3

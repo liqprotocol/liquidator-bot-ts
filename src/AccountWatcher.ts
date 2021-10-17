@@ -2,6 +2,9 @@ import { AccountInfo, PublicKey } from '@solana/web3.js';
 import invariant from 'tiny-invariant';
 import { UserInfo, AccountParser, AssetPrice } from '@apricot-lend/sdk-ts';
 import { LiquidatorBot } from '.';
+import { Firestore, query, collection, onSnapshot } from 'firebase/firestore';
+
+const LIQUIDATE_CANDIDATES_COLLECTION = 'liquidateCandidates';
 
 export abstract class AccountWatcher {
   public abstract accountData?: unknown;
@@ -42,15 +45,37 @@ export class UsersPageWatcher extends AccountWatcher {
   public walletStrToUserInfoWatcher: { [key: string]: UserInfoWatcher } = {};
   public accountData: PublicKey[] = [];
 
-  constructor(bot: LiquidatorBot, pageId: number) {
+  constructor(bot: LiquidatorBot, pageId: number, db: Firestore | null) {
     super(bot);
     this.pageId = pageId;
     this.children = this.walletStrToUserInfoWatcher;
-    const initializer = async () => {
-      const [basePda] = await this.bot.addresses.getBasePda();
-      this.init(await this.bot.addresses.getUsersPageKey(basePda, this.pageId));
-    };
-    initializer();
+    if (db) {
+      // watch keys listed under firestore's assist_candidates collection
+      const assistCandidatesQuery = query(collection(db, LIQUIDATE_CANDIDATES_COLLECTION));
+      onSnapshot(assistCandidatesQuery, snapshot => {
+        snapshot.docChanges().forEach(change => {
+          const walletStr = change.doc.id;
+          if (['added', 'modified'].includes(change.type)) {
+            if (!(walletStr in this.walletStrToUserInfoWatcher)) {
+              this.addUser(walletStr);
+            }
+          } else if (change.type === 'removed') {
+            if (walletStr in this.walletStrToUserInfoWatcher) {
+              this.removeUser(walletStr);
+            }
+          } else {
+            console.log(`UNKNOWN change type: ${change.type}`);
+          }
+        });
+      });
+    } else {
+      // watch keys on this particular page
+      const initializer = async () => {
+        const [basePda] = await this.bot.addresses.getBasePda();
+        this.init(await this.bot.addresses.getUsersPageKey(basePda, this.pageId));
+      };
+      initializer();
+    }
   }
 
   onUpdate(accountInfo: AccountInfo<Buffer>) {
