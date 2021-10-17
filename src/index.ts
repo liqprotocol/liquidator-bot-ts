@@ -51,8 +51,10 @@ if (alphaStr !== 'alpha' && alphaStr !== 'public') {
 
 const firebaseMode = pageStart === '0' && pageEnd === '0';
 
-invariant(parseInt(pageStart) >= 0);
-invariant(parseInt(pageEnd) > parseInt(pageStart));
+if(!firebaseMode) {
+  invariant(parseInt(pageStart) >= 0);
+  invariant(parseInt(pageEnd) > parseInt(pageStart));
+}
 
 const date = new Date();
 const dateStr = date.toISOString();
