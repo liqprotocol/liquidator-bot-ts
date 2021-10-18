@@ -19,7 +19,7 @@ do
         then
             # re-launch the script
             echo "Launching bot starting at $i"
-            node ./dist/index.js public $KEY_LOC $i $(($i + $PAGES_PER_BOT)) $SIG_STR | tee -a $SIG_STR.log &
+            node ./dist/index.js public $KEY_LOC $i $(($i + $PAGES_PER_BOT)) apricot_ept $SIG_STR | tee -a $SIG_STR.log &
             # sleep 30 seconds to avoid connection rush
             sleep 30
         fi
