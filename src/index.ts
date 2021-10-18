@@ -43,7 +43,16 @@ export const TOK_ID_TRANSLATE = {
   [TokenID.USDC]: swappers.TokenID.USDC,
 }
 
-const [, , alphaStr, keyLocation, pageStart, pageEnd] = process.argv;
+const [, , alphaStr, keyLocation, pageStart, pageEnd, endpoint] = process.argv;
+
+const endpoints = {
+  apricot_ept: 'https://apricot.genesysgo.net',
+  serum_ept: 'https://solana-api.projectserum.com',
+  raydium_ept: 'https://raydium.rpcpool.com',
+};
+
+invariant(endpoint in endpoints, `unsupported endpoint: ${endpoint}`);
+const endpointUrl = endpoints[endpoint as keyof typeof endpoints];
 
 if (alphaStr !== 'alpha' && alphaStr !== 'public') {
   throw new Error('alphaStr should be either alpha or public');
@@ -183,9 +192,10 @@ export class LiquidatorBot {
   }
 
   async start() {
-    // shutdown in 30 minutes
-    const shutdownTimer = async () => {
-      await sleep(30 * 60 * 1000);
+    // arm shutdown timer
+    async function shutdownTimer() {
+      const shutdownMinutes = 15 + Math.random() * 20;
+      await sleep(shutdownMinutes * 60 * 1000);
       process.exit();
     }
     shutdownTimer();
@@ -257,7 +267,7 @@ export class LiquidatorBot {
   }
 }
 
-const connection = new Connection('https://apricot.genesysgo.net', 'confirmed');
+const connection = new Connection(endpointUrl, 'confirmed');
 const throttler = new Throttler(5);
 const bot = new LiquidatorBot(
   addresses,
