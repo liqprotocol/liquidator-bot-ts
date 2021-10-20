@@ -123,6 +123,9 @@ export class LiquidatorBot {
       const userInfoWatchers = Object.values(pageWatcher.walletStrToUserInfoWatcher);
       shuffle(userInfoWatchers);
       for (let uiw of userInfoWatchers) {
+        if(firebaseMode) {
+          console.log(`Watching user ${uiw.userWalletKey.toString()}`);
+        }
         // uiw could be undefined
         if (!uiw?.accountData) {
           numNotLoaded += 1;
@@ -135,6 +138,9 @@ export class LiquidatorBot {
           uiw.userWalletKey,
           poolIdToPrice,
         );
+        if(firebaseMode) {
+          console.log(`Blu at ${planner.getBorrowProgress()}`);
+        }
         // check for assist hook
         if (planner.shouldLiquidate()) {
           let nowTime = new Date().getTime();
