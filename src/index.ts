@@ -14,7 +14,17 @@ import {
   TokenID,
   TransactionBuilder,
 } from '@apricot-lend/sdk-ts';
-import { ORCA_ORCA_USDC_MARKET, ORCA_USDT_USDC_MARKET, RAYDIUM_BTC_USDC_MARKET, RAYDIUM_ETH_USDC_MARKET, RAYDIUM_mSOL_USDC_MARKET, RAYDIUM_RAY_USDC_MARKET, RAYDIUM_SOL_USDC_MARKET, Swapper } from '@apricot-lend/solana-swaps-js';
+import { 
+  ORCA_ORCA_USDC_MARKET, 
+  ORCA_USDT_USDC_MARKET, 
+  RAYDIUM_BTC_USDC_MARKET, 
+  RAYDIUM_ETH_USDC_MARKET, 
+  RAYDIUM_mSOL_USDC_MARKET, 
+  RAYDIUM_RAY_USDC_MARKET, 
+  RAYDIUM_SOL_USDC_MARKET, 
+  SABER_USTv2_USDC_MARKET,
+  Swapper 
+} from '@apricot-lend/solana-swaps-js';
 import * as swappers from '@apricot-lend/solana-swaps-js';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
 import { initializeApp } from '@firebase/app';
@@ -30,6 +40,7 @@ export const SUPPORTED_MARKETS: {[key in TokenID]?: Swapper} = {
   [TokenID.ORCA]: ORCA_ORCA_USDC_MARKET,
   [TokenID.RAY]: RAYDIUM_RAY_USDC_MARKET,
   [TokenID.USDT]: ORCA_USDT_USDC_MARKET,
+  [TokenID.USTv2]: SABER_USTv2_USDC_MARKET,
 };
 
 export const TOK_ID_TRANSLATE = {
@@ -41,6 +52,7 @@ export const TOK_ID_TRANSLATE = {
   [TokenID.ORCA]: swappers.TokenID.ORCA,
   [TokenID.USDT]: swappers.TokenID.USDT,
   [TokenID.USDC]: swappers.TokenID.USDC,
+  [TokenID.USTv2]: swappers.TokenID.USTv2,
 }
 
 const [, , alphaStr, keyLocation, pageStart, pageEnd, endpoint] = process.argv;
