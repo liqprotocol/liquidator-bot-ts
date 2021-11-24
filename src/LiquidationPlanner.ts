@@ -50,6 +50,12 @@ export class LiquidationPlanner {
       this.poolIdToBorrowVal[poolId] = borrowVal;
     }
   }
+  canLiquidateAsset(poolId: number): boolean {
+    const poolConfig = this.config.getPoolConfigByPoolId(poolId);
+    const excludedList = [TokenID.APT];
+    const isExcluded = excludedList.includes(poolConfig.tokenId);
+    return !isExcluded;
+  }
   getBorrowLimitAndBorrow() {
     let [borrowLimit, totalBorrow] = [0, 0];
     const poolIdList = this.config.getPoolIdList();
@@ -103,8 +109,16 @@ export class LiquidationPlanner {
 
   pickLiquidationAction(): [number, number, number, number] {
 
+    const filteredPoolIdToDepositVal: PoolIdToNum = {};
+    for (const poolIdStr in this.poolIdToDepositVal) {
+      const poolId = parseInt(poolIdStr);
+      if (this.canLiquidateAsset(poolId)) {
+        filteredPoolIdToDepositVal[poolId] = this.poolIdToDepositVal[poolId];
+      }
+    }
+
     // pick most-valued collateral and most-valued borrowed asset
-    const sortedCollateralVals = Object.entries(this.poolIdToDepositVal).sort((kv1,kv2)=>{
+    const sortedCollateralVals = Object.entries(filteredPoolIdToDepositVal).sort((kv1,kv2)=>{
       return kv2[1] - kv1[1];
     });
     const sortedBorrowedVals = Object.entries(this.poolIdToBorrowVal).sort((kv1,kv2)=>{

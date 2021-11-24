@@ -22,6 +22,7 @@ import {
   RAYDIUM_mSOL_USDC_MARKET, 
   RAYDIUM_RAY_USDC_MARKET, 
   RAYDIUM_SOL_USDC_MARKET, 
+  RAYDIUM_APT_USDC_MARKET,
   SABER_USTv2_USDC_MARKET,
   Swapper 
 } from '@apricot-lend/solana-swaps-js';
@@ -41,6 +42,7 @@ export const SUPPORTED_MARKETS: {[key in TokenID]?: Swapper} = {
   [TokenID.RAY]: RAYDIUM_RAY_USDC_MARKET,
   [TokenID.USDT]: ORCA_USDT_USDC_MARKET,
   [TokenID.USTv2]: SABER_USTv2_USDC_MARKET,
+  [TokenID.APT]: RAYDIUM_APT_USDC_MARKET,
 };
 
 export const TOK_ID_TRANSLATE = {
@@ -53,6 +55,7 @@ export const TOK_ID_TRANSLATE = {
   [TokenID.USDT]: swappers.TokenID.USDT,
   [TokenID.USDC]: swappers.TokenID.USDC,
   [TokenID.USTv2]: swappers.TokenID.USTv2,
+  [TokenID.APT]: swappers.TokenID.APT,
 }
 
 const [, , alphaStr, keyLocation, pageStart, pageEnd, endpoint] = process.argv;
@@ -204,7 +207,7 @@ export class LiquidatorBot {
   }
 
   async prepare() {
-    for(const tokId of [TokenID.BTC, TokenID.ETH, TokenID.SOL, TokenID.mSOL, TokenID.RAY, TokenID.ORCA, TokenID.USDC, TokenID.USDT, TokenID.UST, TokenID.USTv2]) {
+    for(const tokId of [TokenID.BTC, TokenID.ETH, TokenID.SOL, TokenID.mSOL, TokenID.RAY, TokenID.ORCA, TokenID.USDC, TokenID.USDT, TokenID.UST, TokenID.USTv2, TokenID.APT]) {
       await this.checkOrCreateAssociatedTokAcc(tokId);
     }
   }
