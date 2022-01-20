@@ -9,6 +9,7 @@ import {
   Addresses,
   ALPHA_CONFIG,
   assert,
+  LogInfo,
   MINTS,
   PUBLIC_CONFIG,
   TokenID,
@@ -145,7 +146,7 @@ export class LiquidatorBot {
       shuffle(userInfoWatchers);
       for (let uiw of userInfoWatchers) {
         if(firebaseMode) {
-          console.log(`Watching user ${uiw.userWalletKey.toString()}`);
+          LogInfo(`Watching user ${uiw.userWalletKey.toString()}`);
         }
         // uiw could be undefined
         if (!uiw?.accountData) {
