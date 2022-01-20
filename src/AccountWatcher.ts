@@ -1,6 +1,6 @@
 import { AccountInfo, PublicKey } from '@solana/web3.js';
 import invariant from 'tiny-invariant';
-import { UserInfo, AccountParser, AssetPrice } from '@apricot-lend/sdk-ts';
+import { UserInfo, AccountParser, AssetPrice, LogInfo } from '@apricot-lend/sdk-ts';
 import { LiquidatorBot } from '.';
 import { Firestore, query, collection, onSnapshot } from 'firebase/firestore';
 
@@ -20,7 +20,7 @@ export abstract class AccountWatcher {
 
     this.bot.throttler.addNext(() => {
       this.bot.connection.getAccountInfo(this.watchedKey!).then(value => {
-        console.log('updated at ' + this.watchedKey?.toString());
+        LogInfo('updated at ' + this.watchedKey?.toString());
         this.onUpdate(value);
       });
       this.subId = this.bot.connection.onAccountChange(

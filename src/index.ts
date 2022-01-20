@@ -152,6 +152,10 @@ export class LiquidatorBot {
           numNotLoaded += 1;
           continue;
         }
+        // skip off-page users
+        if (uiw.accountData.page_id === 65535) {
+          continue;
+        }
         const planner = new LiquidationPlanner(
           this,
           this.addresses.config,
