@@ -1,6 +1,6 @@
 {
   "name": "@apricot-lend/liquidator-ts",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Apricot Liquidator Bot",
   "main": "dist/index.js",
   "scripts": {

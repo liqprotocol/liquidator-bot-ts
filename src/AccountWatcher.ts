@@ -1,6 +1,6 @@
 import { AccountInfo, PublicKey } from '@solana/web3.js';
 import invariant from 'tiny-invariant';
-import { UserInfo, AccountParser, AssetPrice, LogInfo } from '@apricot-lend/sdk-ts';
+import { UserInfo, AccountParser, AssetPrice, LogInfo, LogWarning, LogAlert } from '@apricot-lend/sdk-ts';
 import { LiquidatorBot } from '.';
 import { Firestore, query, collection, onSnapshot } from 'firebase/firestore';
 
@@ -64,7 +64,7 @@ export class UsersPageWatcher extends AccountWatcher {
               this.removeUser(walletStr);
             }
           } else {
-            console.log(`UNKNOWN change type: ${change.type}`);
+            LogAlert(`UNKNOWN change type: ${change.type}`);
           }
         });
       });
@@ -80,7 +80,7 @@ export class UsersPageWatcher extends AccountWatcher {
 
   onUpdate(accountInfo: AccountInfo<Buffer>) {
     if (accountInfo === null) {
-      console.log(`page ${this.pageId} not created`);
+      LogWarning(`page ${this.pageId} not created`);
       return;
     }
     this.accountData = AccountParser.parseUsersPage(new Uint8Array(accountInfo.data));
@@ -89,7 +89,7 @@ export class UsersPageWatcher extends AccountWatcher {
       .filter(k => k !== '11111111111111111111111111111111');
 
     const walletStrSet = new Set(walletStrList);
-    console.log(`${UsersPageWatcher.name}: wallets got at page ${this.pageId}:\n`, walletStrSet);
+    LogInfo(`${UsersPageWatcher.name}: wallets got at page ${this.pageId}:\n${walletStrSet}`);
 
     // if user no longer exists on page, remove it
     Object.keys(this.walletStrToUserInfoWatcher).forEach(async walletStr => {

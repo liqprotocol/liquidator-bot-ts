@@ -87,6 +87,7 @@ if(!firebaseMode) {
   invariant(parseInt(pageEnd) > parseInt(pageStart));
 }
 
+/*
 const date = new Date();
 const dateStr = date.toISOString();
 const dateStrSub = dateStr
@@ -95,6 +96,7 @@ const dateStrSub = dateStr
   .join('-');
 const updateTimedLogger = fs.createWriteStream(`./liquidator.updates.${pageStart}_${pageEnd}.${dateStrSub}.log`, {});
 const actionTimedLogger = fs.createWriteStream(`./liquidator.actions.${pageStart}_${pageEnd}.${dateStrSub}.log`, {});
+*/
 
 const config = alphaStr === 'alpha' ? ALPHA_CONFIG : PUBLIC_CONFIG;
 assert(config !== null);
@@ -278,14 +280,14 @@ export class LiquidatorBot {
   }
 
   logUpdate(str: string) {
-    const time = new Date();
-    updateTimedLogger.write(time.toISOString() + ': ' + str + '\n');
+    // const time = new Date();
+    // updateTimedLogger.write(time.toISOString() + ': ' + str + '\n');
     console.log(str);
   }
 
   logAction(str: string) {
-    const time = new Date();
-    actionTimedLogger.write(time.toISOString() + ': ' + str + '\n');
+    // const time = new Date();
+    // actionTimedLogger.write(time.toISOString() + ': ' + str + '\n');
     console.log(str);
   }
   getPoolIdToPrice(): PoolIdToPrice {
