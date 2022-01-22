@@ -1,6 +1,6 @@
 import { AccountInfo, PublicKey } from '@solana/web3.js';
 import invariant from 'tiny-invariant';
-import { UserInfo, AccountParser, AssetPrice, LogInfo, LogWarning, LogAlert } from '@apricot-lend/sdk-ts';
+import { UserInfo, AccountParser, AssetPrice, LogWarning, LogAlert, LogDebug } from '@apricot-lend/sdk-ts';
 import { LiquidatorBot } from '.';
 import { Firestore, query, collection, onSnapshot } from 'firebase/firestore';
 
@@ -20,7 +20,7 @@ export abstract class AccountWatcher {
 
     this.bot.throttler.addNext(() => {
       this.bot.connection.getAccountInfo(this.watchedKey!).then(value => {
-        LogInfo('updated at ' + this.watchedKey?.toString());
+        LogDebug(' updated at ' + this.watchedKey?.toString());
         this.onUpdate(value);
       });
       this.subId = this.bot.connection.onAccountChange(
@@ -89,7 +89,7 @@ export class UsersPageWatcher extends AccountWatcher {
       .filter(k => k !== '11111111111111111111111111111111');
 
     const walletStrSet = new Set(walletStrList);
-    LogInfo(`${UsersPageWatcher.name}: wallets got at page ${this.pageId}:\n${walletStrSet}`);
+    LogDebug(` ${UsersPageWatcher.name}: wallets got at page ${this.pageId}:\n${walletStrSet}`);
 
     // if user no longer exists on page, remove it
     Object.keys(this.walletStrToUserInfoWatcher).forEach(async walletStr => {

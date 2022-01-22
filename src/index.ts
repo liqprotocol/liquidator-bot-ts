@@ -9,6 +9,7 @@ import {
   Addresses,
   ALPHA_CONFIG,
   assert,
+  LogError,
   LogInfo,
   MINTS,
   PUBLIC_CONFIG,
@@ -141,15 +142,15 @@ export class LiquidatorBot {
     this.clearResidual = liquidatorConfig.clearResidual;
   }
   async step() {
+    if(firebaseMode) {
+      LogInfo(` DB====step===: ${new Date()}`);
+    }
     const poolIdToPrice = this.getPoolIdToPrice();
     let numNotLoaded = 0;
     for (const pageWatcher of this.pageWatchers) {
       const userInfoWatchers = Object.values(pageWatcher.walletStrToUserInfoWatcher);
       shuffle(userInfoWatchers);
       for (let uiw of userInfoWatchers) {
-        if(firebaseMode) {
-          LogInfo(`Watching user ${uiw.userWalletKey.toString()}`);
-        }
         // uiw could be undefined
         if (!uiw?.accountData) {
           numNotLoaded += 1;
@@ -167,7 +168,7 @@ export class LiquidatorBot {
           poolIdToPrice,
         );
         if(firebaseMode) {
-          console.log(`Blu at ${planner.getBorrowProgress()}`);
+          LogInfo(` User ${uiw.userWalletKey.toString()} Blu at ${planner.getBorrowProgress()}`);
         }
         // check for assist hook
         if (planner.shouldLiquidate()) {
@@ -177,7 +178,7 @@ export class LiquidatorBot {
             try {
               await planner.fireLiquidation(this.builder, this.connection, this.keypair, SUPPORTED_MARKETS, TOK_ID_TRANSLATE);
             } catch (e) {
-              console.log(e);
+              LogError(`${e}`);
             }
             uiw.lastFireTime = nowTime;
           }
@@ -282,13 +283,13 @@ export class LiquidatorBot {
   logUpdate(str: string) {
     // const time = new Date();
     // updateTimedLogger.write(time.toISOString() + ': ' + str + '\n');
-    console.log(str);
+    LogInfo(str);
   }
 
   logAction(str: string) {
     // const time = new Date();
     // actionTimedLogger.write(time.toISOString() + ': ' + str + '\n');
-    console.log(str);
+    LogInfo(str);
   }
   getPoolIdToPrice(): PoolIdToPrice {
     const result: PoolIdToPrice = {};
