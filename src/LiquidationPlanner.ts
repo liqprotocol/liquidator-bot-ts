@@ -5,6 +5,7 @@ import {
   TransactionBuilder,
   UserInfo,
   TokenID,
+  LIQUIDATION_LIMIT,
 } from '@apricot-lend/sdk-ts';
 import { PoolIdToPrice } from './types';
 import { LiquidatorBot } from '.';
@@ -136,7 +137,7 @@ export class LiquidationPlanner {
 
   shouldLiquidate(): boolean {
     const progress = this.getBorrowProgress();
-    return progress !== null && progress > 1;
+    return progress !== null && progress > LIQUIDATION_LIMIT.toNumber();
   }
 
   async fireLiquidation(

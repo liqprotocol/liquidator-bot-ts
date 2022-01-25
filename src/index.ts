@@ -9,6 +9,7 @@ import {
   Addresses,
   ALPHA_CONFIG,
   assert,
+  LIQUIDATION_LIMIT,
   LogError,
   LogInfo,
   MINTS,
@@ -28,7 +29,9 @@ import {
   SABER_USTv2_USDC_MARKET,
   Swapper, 
   RAYDIUM_SRM_USDC_MARKET,
-  ORCA_FTT_USDC_MARKET
+  ORCA_FTT_USDC_MARKET,
+  RAYDIUM_whETH_USDC_MARKET,
+  RAYDIUM_stSOL_USDC_MARKET
 } from '@apricot-lend/solana-swaps-js';
 import * as swappers from '@apricot-lend/solana-swaps-js';
 import { ASSOCIATED_TOKEN_PROGRAM_ID, Token, TOKEN_PROGRAM_ID } from '@solana/spl-token';
@@ -49,6 +52,8 @@ export const SUPPORTED_MARKETS: {[key in TokenID]?: Swapper} = {
   [TokenID.APT]: RAYDIUM_APT_USDC_MARKET,
   [TokenID.SRM]: RAYDIUM_SRM_USDC_MARKET,
   [TokenID.FTT]: ORCA_FTT_USDC_MARKET,
+  [TokenID.whETH]: RAYDIUM_whETH_USDC_MARKET,
+  [TokenID.stSOL]: RAYDIUM_stSOL_USDC_MARKET,
 };
 
 export const TOK_ID_TRANSLATE = {
@@ -64,6 +69,8 @@ export const TOK_ID_TRANSLATE = {
   [TokenID.APT]: swappers.TokenID.APT,
   [TokenID.SRM]: swappers.TokenID.SRM,
   [TokenID.FTT]: swappers.TokenID.FTT,
+  [TokenID.whETH]: swappers.TokenID.whETH,
+  [TokenID.stSOL]: swappers.TokenID.stSOL,
 }
 
 const [, , alphaStr, keyLocation, pageStart, pageEnd, endpoint] = process.argv;
@@ -87,6 +94,9 @@ if(!firebaseMode) {
   invariant(parseInt(pageStart) >= 0);
   invariant(parseInt(pageEnd) > parseInt(pageStart));
 }
+
+// log thresholds
+LogInfo(`LIQUIDATION_LIMIT: ${LIQUIDATION_LIMIT.toNumber()}`);
 
 /*
 const date = new Date();
@@ -221,7 +231,7 @@ export class LiquidatorBot {
   }
 
   async prepare() {
-    for(const tokId of [TokenID.BTC, TokenID.ETH, TokenID.SOL, TokenID.mSOL, TokenID.RAY, TokenID.ORCA, TokenID.USDC, TokenID.USDT, TokenID.UST, TokenID.USTv2, TokenID.APT, TokenID.SRM, TokenID.FTT]) {
+    for(const tokId of [TokenID.BTC, TokenID.ETH, TokenID.SOL, TokenID.mSOL, TokenID.RAY, TokenID.ORCA, TokenID.USDC, TokenID.USDT, TokenID.UST, TokenID.USTv2, TokenID.APT, TokenID.SRM, TokenID.FTT, TokenID.whETH, TokenID.stSOL]) {
       await this.checkOrCreateAssociatedTokAcc(tokId);
     }
   }
