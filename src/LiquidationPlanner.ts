@@ -45,8 +45,8 @@ export class LiquidationPlanner {
       const price = poolIdToPrice[poolId];
       if (price === undefined) continue;
       const decimalMult = config.getDecimalMultByPoolId(poolId);
-      const depositVal = (price * uai.deposit_amount.toNumber()) / decimalMult;
-      const borrowVal = (price * uai.borrow_amount.toNumber()) / decimalMult;
+      const depositVal = (price * Math.floor(uai.deposit_amount.toNumber())) / decimalMult;
+      const borrowVal = (price * Math.floor(uai.borrow_amount.toNumber())) / decimalMult;
       this.poolIdToDepositVal[poolId] = depositVal;
       this.poolIdToBorrowVal[poolId] = borrowVal;
     }
