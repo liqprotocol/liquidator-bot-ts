@@ -18,7 +18,7 @@
   },
   "homepage": "https://github.com/Apricot-Finance/liquidator-bot-ts#readme",
   "dependencies": {
-    "@apricot-lend/sdk-ts": "^0.16.23",
+    "@apricot-lend/sdk-ts": "^0.16.31",
     "@apricot-lend/solana-swaps-js": "^0.1.18",
     "@solana/spl-token": "^0.1.8",
     "@solana/web3.js": "^1.29.1",

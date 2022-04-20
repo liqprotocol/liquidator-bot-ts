@@ -9,6 +9,7 @@ import {
   Addresses,
   ALPHA_CONFIG,
   assert,
+  getRPCConnection,
   LIQUIDATION_LIMIT,
   LogError,
   LogInfo,
@@ -77,15 +78,6 @@ export const TOK_ID_TRANSLATE = {
 }
 
 const [, , alphaStr, keyLocation, pageStart, pageEnd, endpoint] = process.argv;
-
-const endpoints = {
-  apricot_ept: 'https://apricot.genesysgo.net',
-  serum_ept: 'https://solana-api.projectserum.com',
-  raydium_ept: 'https://raydium.rpcpool.com',
-};
-
-invariant(endpoint in endpoints, `unsupported endpoint: ${endpoint}`);
-const endpointUrl = endpoints[endpoint as keyof typeof endpoints];
 
 if (alphaStr !== 'alpha' && alphaStr !== 'public') {
   throw new Error('alphaStr should be either alpha or public');
@@ -315,7 +307,7 @@ export class LiquidatorBot {
   }
 }
 
-const connection = new Connection(endpointUrl, 'confirmed');
+const connection = getRPCConnection(endpoint, 'confirmed');
 const throttler = new Throttler(5);
 const bot = new LiquidatorBot(
   addresses,
